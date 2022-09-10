@@ -1,4 +1,5 @@
-#pragma once
+#ifndef CPP_MATRIX_HPP
+#define CPP_MATRIX_HPP
 
 #include <ostream>
 
@@ -79,3 +80,5 @@ inline Matrix operator*(double sca, Matrix mat) {
 };
 
 std::ostream& operator<<(std::ostream &strm, const Matrix& mat);
+
+#endif//CPP_MATRIX_HPP
