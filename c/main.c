@@ -1,20 +1,28 @@
 #include "log.h"
-#include "rbtree.h"
-
-int sorting_num_p(void* a, void* b) {
-    return (*(int*)a) - (*(int*)b);
-}
-int sorting_num_n(void* a, void* b) {
-    return (*(int*)b) - (*(int*)a);
-}
+#include "queue.h"
+#include <string.h>
+#include <stdio.h>
 
 int main(int argc, char* argv[]) {
-    logSetLevel(LOG_LEVEL_INFO);
-    Tree tree = treeInit(sorting_num_p, 1);
-    for(int i=0; i<0x7f; i++) {
-        treeInsert(tree, &i);
+    logSetLevel(LOG_LEVEL_WARNING);
+    Queue queue = queueInit(32);
+    char buf[32];
+    int i=0;
+    for(; i<4; i++) {
+        sprintf(buf, "stringa %d", i);
+        queueEnqueue(queue, buf);
     }
-    logWarning("Rebuilding tree...");
-    treeRebuild(tree, sorting_num_n);
-    treeDestroy(tree);
+    for(int j=0; j<2; j++) {
+        queueDequeue(queue);
+    }
+    for(; i<20; i++) {
+        sprintf(buf, "stringa %d", i);
+        queueEnqueue(queue, buf);
+    }
+    while(queuePeek(queue)){
+        printf("%s\n", (char*)queuePeek(queue));
+        queueDequeue(queue);
+    }
+    queueDestroy(queue);
+    logInfo("End of program");
 }
