@@ -4,9 +4,11 @@
 #include <malloc.h>
 #include <string.h>
 
-#ifndef QUEUE_INITIAL_SIZE
-#define QUEUE_INITIAL_SIZE (8)
-#endif
+#ifndef QUEUE_DEFAULT_SIZE
+#define QUEUE_DEFAULT_SIZE 8
+#endif//QUEUE_DEFAULT_SIZE
+
+#define QUEUE_INITIAL_SIZE (QUEUE_DEFAULT_SIZE)
 
 #ifndef QUEUE_MAXIMUM_SIZE
 #define QUEUE_MAXIMUM_SIZE (QUEUE_INITIAL_SIZE << 10)
@@ -18,7 +20,6 @@ typedef struct QUEUE_T {
     counter_t length;
     counter_t size;
     counter_t data_size;
-    counter_t mask;
 } queue_t;
 typedef queue_t *queue_ptr;
 
@@ -31,7 +32,6 @@ queue_ptr queueInit(counter_t data_size) {
     tmp->length = 0;
     tmp->size = QUEUE_INITIAL_SIZE;
     tmp->data_size = data_size;
-    tmp->mask = QUEUE_INITIAL_SIZE-1;
     logInfo("New queue created at %p", tmp);
 
     return tmp;
@@ -58,14 +58,14 @@ void* queueDequeue(queue_ptr queue) {
     #if LIBALLOC
         free(to_delete);
     #endif
-    queue->first = (queue->first + 1)&(queue->mask);
+        queue->first = (queue->first + 1)%(queue->size);
     queue->length--;
 
     return to_delete;
 }
 
 void* queueEnqueue(queue_ptr queue, void* data) {
-    counter_t new_size = queue->size*2;
+    counter_t new_size = queue->size+QUEUE_INITIAL_SIZE;
     void** new_data;
     if(queue->length >= queue->size) {
         if(new_size > QUEUE_MAXIMUM_SIZE) {
@@ -84,16 +84,15 @@ void* queueEnqueue(queue_ptr queue, void* data) {
         queue->first = 0;
         queue->data = new_data;
         queue->size = new_size;
-        queue->mask = new_size-1;
     }
     #if LIBALLOC
         void* tmp = (void*)malloc(queue->data_size); if(!tmp) { logWarning("Bad data alloc during insertion"); goto bad_data_alloc; }
         memcpy(tmp, data, queue->data_size);
-        logDebug("Adding element %p to queue %p in position %d(%d+%d)", tmp, queue, (queue->first+queue->length)&(queue->mask), queue->first, queue->length);
-        queue->data[(queue->first+queue->length)&(queue->mask)] = tmp;
+        logDebug("Adding element %p to queue %p in position %d(%d+%d)", tmp, queue, (queue->first+queue->length)%(queue->size), queue->first, queue->length);
+        queue->data[(queue->first+queue->length)%(queue->size)] = tmp;
     #else
-        logDebug("Adding element %p to queue %p in position %d(%d+%d)", data, queue, (queue->first+queue->length)&(queue->mask), queue->first, queue->length);
-        queue->data[(queue->first+queue->length)&queue->mask] = data;
+        logDebug("Adding element %p to queue %p in position %d(%d+%d)", data, queue, (queue->first+queue->length)%(queue->size), queue->first, queue->length);
+        queue->data[(queue->first+queue->length)%(queue->size)] = data;
     #endif
     queue->length++;
     
