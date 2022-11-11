@@ -1,10 +1,6 @@
 #ifndef C_QUEUE_H
 #define C_QUEUE_H
 
-#ifndef LIBALLOC
-#define LIBALLOC 1  // default: memory allocation and deallocation is up to the library
-#endif//LIBALLOC
-
 #ifndef counter_t
 #define counter_t unsigned int
 #endif
