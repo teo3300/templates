@@ -18,15 +18,14 @@ typedef struct QUEUE_T {
 } queue_t;
 typedef queue_t *queue_ptr;
 
-queue_ptr queueInit(unsigned int size, unsigned int data_size) {
-    if(!size) goto bad_str_alloc;
-    queue_ptr tmp = (queue_ptr)malloc(sizeof(queue_t));
+queue_ptr queueInit(unsigned int data_size) {
+    queue_ptr tmp = (queue_ptr)malloc(QUEUE_INITIAL_SIZE*sizeof(queue_t));
         if(!tmp) { goto bad_str_alloc; }
-    tmp->data = (void**)malloc(size*sizeof(void*));
+    tmp->data = (void**)malloc(QUEUE_INITIAL_SIZE*sizeof(void*));
         if(!tmp) { goto bad_vec_alloc; }
     tmp->first = 0;
     tmp->length = 0;
-    tmp->size = size;
+    tmp->size = QUEUE_INITIAL_SIZE;
     tmp->data_size = data_size;
 
     return tmp;
@@ -34,6 +33,7 @@ queue_ptr queueInit(unsigned int size, unsigned int data_size) {
     bad_vec_alloc:
         free(tmp);
     bad_str_alloc:
+        logError("Unable to create queue");
         return NULL;
 }
 unsigned int queueLen(queue_ptr queue) {
@@ -41,18 +41,20 @@ unsigned int queueLen(queue_ptr queue) {
 }
 
 void* queuePeek(queue_ptr queue) {
-    if (queue->length == 0) return NULL;
+    // peek first element in queue
+    if(queueLen(queue) == 0) return NULL;
     return queue->data[queue->first];
 }
 
 void* queueDequeue(queue_ptr queue) {
-    void* to_delete = queuePeek(queue);
-    if (to_delete == NULL) return NULL;
+    void* to_dequeue = queuePeek(queue);
+    if (to_dequeue == NULL) return NULL;
 
     queue->first = (queue->first + 1)%(queue->size);
     queue->length--;
 
-    return to_delete;
+    logDebug("Element %p removed from queue %p (%d)", to_dequeue, queue, queue->first);
+    return to_dequeue;
 }
 
 void* queueEnqueue(queue_ptr queue, void* data) {
@@ -66,6 +68,7 @@ void* queueEnqueue(queue_ptr queue, void* data) {
         memcpy(&new_data[queue->size-queue->first], queue->data, sizeof(void*)*queue->first);
         memcpy(new_data, &queue->data[queue->first], sizeof(void*)*(queue->size-queue->first));
 
+        // free old queue
         free(queue->data);
         queue->first = 0;
         queue->data = new_data;
@@ -75,9 +78,9 @@ void* queueEnqueue(queue_ptr queue, void* data) {
     queue->data[(queue->first+queue->length)%(queue->size)] = data;
     queue->length++;
     
-    return queue;
-
-    bad_data_alloc: bad_queue_realloc:
+    return data;
+    bad_queue_realloc:
+        logWarning("Bad data reallocation in queue enlargment, not adding more data");
         return NULL;
 }
 

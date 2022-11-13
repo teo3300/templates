@@ -110,6 +110,7 @@ tree_node_ptr treePrev(rb_tree_ptr tree, tree_node_ptr x) {
     }
     return y;
 }
+
 void* treeInsert(rb_tree_ptr tree, void* data){
     tree_node_ptr node = (tree_node_ptr)malloc(sizeof(tree_node_t));
     if(!node) { logError("Bad node alloc during insertion"); goto node_bad_alloc; }
@@ -159,7 +160,7 @@ tree_node_ptr treeRemoveLib(rb_tree_ptr tree, tree_node_ptr z) {
     return z;
 }
 void* treeRemove(rb_tree_ptr tree, void *data) {
-    tree_node_ptr z = treeFindLib(tree,data);
+    tree_node_ptr z = treeFindLib(tree, data);
     if(!z) return NULL;
     logDebug("Node to remove: %p", z);
     treeRemoveLib(tree, z);
@@ -184,7 +185,10 @@ void treeRebuild(rb_tree_ptr tree, int (*sorting_criteria)(void*, void*)) {
     (*tree) = tmp_tree;
 }
 tree_node_ptr treeFindRecursive(rb_tree_ptr tree, void* x, tree_node_ptr y) {
-    if(y == global_nil) return NULL;
+    if(y == global_nil) {
+        logDebug("element %p not found", x);
+        return NULL;
+    }
 
     int res = tree->sorting_criteria(x, y->data);
 
@@ -193,12 +197,12 @@ tree_node_ptr treeFindRecursive(rb_tree_ptr tree, void* x, tree_node_ptr y) {
     else if (res < 0)
         return treeFindRecursive(tree, x, y->left);
     
+    logDebug("element %p found at node %p", x, y);
     return y;
 }
 
 tree_node_ptr treeFindLib(rb_tree_ptr tree, void* data_ptr) { return treeFindRecursive(tree, data_ptr, tree->root); }
 void* treeFind(rb_tree_ptr tree, void* data_ptr) { return treeFindLib(tree, data_ptr)->data; }
-
 
 void treeLeftRotate(rb_tree_ptr tree, tree_node_ptr x) {
     tree_node_ptr y = x->right;

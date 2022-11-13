@@ -1,8 +1,6 @@
 #ifndef C_LOG_H
 #define C_LOG_H
 
-#include "queue.h"
-
 typedef enum {
     LOG_LEVEL_DEBUG = 0,
     LOG_LEVEL_INFO,

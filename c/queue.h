@@ -5,7 +5,7 @@ typedef struct QUEUE_T queue_t;
 typedef queue_t *queue_ptr;
 typedef queue_ptr Queue;
 
-queue_ptr queueInit(unsigned int size, unsigned int data_size);
+queue_ptr queueInit(unsigned int data_size);
 void queueDestroy(queue_ptr queue);
 unsigned int queueLen(queue_ptr queue);
 void* queuePeek(queue_ptr queue);
