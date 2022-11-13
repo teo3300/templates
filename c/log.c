@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-log_level_t treshold_log_level = LOG_LEVEL_DEBUG;
+log_level_t treshold_log_level = LOG_LEVEL_ERROR;
 const char *log_level_flag[] = {
     "DEBUG",
     "INFO",

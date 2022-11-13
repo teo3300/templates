@@ -3,7 +3,7 @@
 #include <malloc.h>
 #include "log.h"
 
-counter_t tree_counter = 0;
+unsigned int tree_counter = 0;
 tree_node_ptr global_nil = 0x0;
 
 typedef enum COLOR_T {
@@ -23,8 +23,8 @@ typedef struct RB_TREE_T {
     tree_node_ptr   root;
     int             (*sorting_criteria)(void*, void*);
     void            (*data_print)(void*);
-    counter_t       size;
-    counter_t       data_size;
+    unsigned int       size;
+    unsigned int       data_size;
 } rb_tree_t;
 
 tree_node_ptr treeMinRel(rb_tree_ptr tree, tree_node_ptr node);
@@ -39,9 +39,9 @@ tree_node_ptr treeInsertFixup(rb_tree_ptr tree, tree_node_ptr z);
 void treeDeleteFixup(rb_tree_ptr tree, tree_node_ptr x);
 void treeDestroyRec(rb_tree_ptr tree, tree_node_ptr node);
 
-counter_t treeSize(rb_tree_ptr tree) { return tree->size; }
+unsigned int treeSize(rb_tree_ptr tree) { return tree->size; }
 
-rb_tree_ptr treeInit (int(*sorting_criteria)(void*, void*), counter_t data_size) {
+rb_tree_ptr treeInit (int(*sorting_criteria)(void*, void*), unsigned int data_size) {
     if(!global_nil) {
         global_nil = (tree_node_ptr)malloc(sizeof(tree_node_t)); if(!global_nil) { logError("Bad common nil allocation"); goto bad_nil_alloc; }
         *global_nil = (tree_node_t){
@@ -69,10 +69,19 @@ rb_tree_ptr treeInit (int(*sorting_criteria)(void*, void*), counter_t data_size)
         return NULL;
 }
 
+void* treeMin(rb_tree_ptr tree) {
+    return treeMinRel(tree, tree->root)->data;
+}
+
+void* treeMax(rb_tree_ptr tree) {
+    return treeMaxRel(tree, tree->root)->data;
+}
+
 tree_node_ptr treeMinRel(rb_tree_ptr tree, tree_node_ptr x) {
     while(x->left != global_nil) {
         x = x->left;
-    } return x;
+    }
+    return x;
 }
 tree_node_ptr treeMaxRel(rb_tree_ptr tree, tree_node_ptr x) {
     while(x->right != global_nil) {
@@ -105,12 +114,7 @@ void* treeInsert(rb_tree_ptr tree, void* data){
     tree_node_ptr node = (tree_node_ptr)malloc(sizeof(tree_node_t));
     if(!node) { logError("Bad node alloc during insertion"); goto node_bad_alloc; }
 
-    #if LIBALLOC
-        node->data = (void*)malloc(tree->data_size); if(!node->data) { logError("Bad data alloc during insertion"); goto data_bad_alloc; }
-        memcpy(node->data, data, tree->data_size);
-    #else
-        node->data = data;
-    #endif
+    node->data = data;
     return treeInsertLib(tree, node);
 
     data_bad_alloc:
@@ -157,12 +161,12 @@ tree_node_ptr treeRemoveLib(rb_tree_ptr tree, tree_node_ptr z) {
 void* treeRemove(rb_tree_ptr tree, void *data) {
     tree_node_ptr z = treeFindLib(tree,data);
     if(!z) return NULL;
+    logDebug("Node to remove: %p", z);
     treeRemoveLib(tree, z);
-    #if LIBALLOC
-        if(z->data) free(z->data);
-    #endif
+    logDebug("Node %p removed, freeing", z);
+    void* ret_data = z->data;
     free(z);
-    return z;
+    return ret_data;
 }
 void treeRebuild(rb_tree_ptr tree, int (*sorting_criteria)(void*, void*)) {
     rb_tree_t tmp_tree;
@@ -182,7 +186,7 @@ void treeRebuild(rb_tree_ptr tree, int (*sorting_criteria)(void*, void*)) {
 tree_node_ptr treeFindRecursive(rb_tree_ptr tree, void* x, tree_node_ptr y) {
     if(y == global_nil) return NULL;
 
-    int res = tree->sorting_criteria(x,y->data);
+    int res = tree->sorting_criteria(x, y->data);
 
     if (res > 0)
         return treeFindRecursive(tree, x, y->right);
@@ -193,7 +197,7 @@ tree_node_ptr treeFindRecursive(rb_tree_ptr tree, void* x, tree_node_ptr y) {
 }
 
 tree_node_ptr treeFindLib(rb_tree_ptr tree, void* data_ptr) { return treeFindRecursive(tree, data_ptr, tree->root); }
-void* treeFind(rb_tree_ptr tree, void* data_ptr) { return treeFindLib(tree, tree->root)->data; }
+void* treeFind(rb_tree_ptr tree, void* data_ptr) { return treeFindLib(tree, data_ptr)->data; }
 
 
 void treeLeftRotate(rb_tree_ptr tree, tree_node_ptr x) {
@@ -374,13 +378,10 @@ void treeDestroyRec(rb_tree_ptr tree, tree_node_ptr node) {
     if(node->right != global_nil) {
         treeDestroyRec(tree, node->right);
     }
-    #if LIBALLOC
-        if(node->data) free(node->data);
-    #endif
     free(node);
 }
-void treeDestroy(rb_tree_ptr tree){
-    if(tree->size) {
+void treeDestroy(rb_tree_ptr tree) {
+    if(treeSize(tree)) {
         treeDestroyRec(tree, tree->root);
     }
     logInfo("Removing tree %p", tree);
