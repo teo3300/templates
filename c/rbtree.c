@@ -101,16 +101,12 @@ tree_node_ptr treePrev(rb_tree_ptr tree, tree_node_ptr x) {
     }
     return y;
 }
+
 void* treeInsert(rb_tree_ptr tree, void* data){
     tree_node_ptr node = (tree_node_ptr)malloc(sizeof(tree_node_t));
     if(!node) { logError("Bad node alloc during insertion"); goto node_bad_alloc; }
 
-    #if LIBALLOC
-        node->data = (void*)malloc(tree->data_size); if(!node->data) { logError("Bad data alloc during insertion"); goto data_bad_alloc; }
-        memcpy(node->data, data, tree->data_size);
-    #else
-        node->data = data;
-    #endif
+    node->data = data;
     return treeInsertLib(tree, node);
 
     data_bad_alloc:
@@ -155,14 +151,12 @@ tree_node_ptr treeRemoveLib(rb_tree_ptr tree, tree_node_ptr z) {
     return z;
 }
 void* treeRemove(rb_tree_ptr tree, void *data) {
-    tree_node_ptr z = treeFindLib(tree,data);
+    tree_node_ptr z = treeFindLib(tree, data);
     if(!z) return NULL;
     treeRemoveLib(tree, z);
-    #if LIBALLOC
-        if(z->data) free(z->data);
-    #endif
+    void* ret_data = z->data;
     free(z);
-    return z;
+    return data;
 }
 void treeRebuild(rb_tree_ptr tree, int (*sorting_criteria)(void*, void*)) {
     rb_tree_t tmp_tree;
@@ -180,7 +174,10 @@ void treeRebuild(rb_tree_ptr tree, int (*sorting_criteria)(void*, void*)) {
     (*tree) = tmp_tree;
 }
 tree_node_ptr treeFindRecursive(rb_tree_ptr tree, void* x, tree_node_ptr y) {
-    if(y == global_nil) return NULL;
+    if(y == global_nil) {
+        logDebug("element %p not found", x);
+        return NULL;
+    }
 
     int res = tree->sorting_criteria(x,y->data);
 
@@ -189,12 +186,12 @@ tree_node_ptr treeFindRecursive(rb_tree_ptr tree, void* x, tree_node_ptr y) {
     else if (res < 0)
         return treeFindRecursive(tree, x, y->left);
     
+    logDebug("element %p found at node %p", x, y);
     return y;
 }
 
 tree_node_ptr treeFindLib(rb_tree_ptr tree, void* data_ptr) { return treeFindRecursive(tree, data_ptr, tree->root); }
-void* treeFind(rb_tree_ptr tree, void* data_ptr) { return treeFindLib(tree, tree->root)->data; }
-
+void* treeFind(rb_tree_ptr tree, void* data_ptr) { return treeFindLib(tree, data_ptr)->data; }
 
 void treeLeftRotate(rb_tree_ptr tree, tree_node_ptr x) {
     tree_node_ptr y = x->right;
@@ -374,9 +371,6 @@ void treeDestroyRec(rb_tree_ptr tree, tree_node_ptr node) {
     if(node->right != global_nil) {
         treeDestroyRec(tree, node->right);
     }
-    #if LIBALLOC
-        if(node->data) free(node->data);
-    #endif
     free(node);
 }
 void treeDestroy(rb_tree_ptr tree){
